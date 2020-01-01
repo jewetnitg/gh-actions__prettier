@@ -95,15 +95,14 @@ function run() {
                 .getInput("extensions")
                 .split("\n")
                 .filter(Boolean);
-            const extensionGlobs = extensions.map(ext => `'**/*.${ext}'`).join(" ");
-            const json = JSON.stringify({
-                format: `prettier --write ${extensionGlobs}`,
-                "format-check": `prettier --check ${extensionGlobs}`,
-            }).replace("'", "\\'");
+            const { tabWidth = 2 } = JSON.parse(config);
+            const extensionGlobs = extensions
+                .map(ext => `'**/*.${ext.replace(/\s+/g, "")}'`)
+                .join(" ");
             child_process_1.execSync(`npm install -D prettier`, { env: process.env });
-            child_process_1.execSync(`jq '.scripts += ${json}' package.json | tee package.json`, {
-                env: process.env,
-            });
+            const pkg = JSON.parse(fs_1.readFileSync("package.json").toString());
+            pkg.scripts = Object.assign(Object.assign({}, pkg.scripts), { format: `prettier --write ${extensionGlobs}`, "format-check": `prettier --check ${extensionGlobs}` });
+            fs_1.writeFileSync("package.json", JSON.stringify(pkg, null, tabWidth));
             fs_1.writeFileSync(paths.config, config);
             fs_1.writeFileSync(paths.ignore, ignore);
         }
