@@ -25,6 +25,19 @@ inputs:
             node_modules/
             package-lock.json
 
+    extensions:
+        description: "Extensions that should be formatted."
+        required: false
+        default: |
+            js
+            jsx
+            json
+            yml
+            yaml
+            ts
+            tsx
+            md
+
 runs:
     using: "node12"
     main: "dist/index.js"

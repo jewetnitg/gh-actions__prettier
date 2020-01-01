@@ -91,7 +91,17 @@ function run() {
         try {
             const config = core.getInput("config");
             const ignore = core.getInput("ignore");
-            child_process_1.execSync(`npm install -D prettier`, {
+            const extensions = core
+                .getInput("extensions")
+                .split("\n")
+                .filter(Boolean);
+            const extensionGlobs = extensions.map(ext => `'**/*.${ext}'`).join(" ");
+            const json = JSON.stringify({
+                format: `prettier --write ${extensionGlobs}`,
+                "format-check": `prettier --check ${extensionGlobs}`,
+            });
+            child_process_1.execSync(`npm install -D prettier`, { env: process.env });
+            child_process_1.execSync(`jq '.scripts += ${json}' package.json | tee package.json`, {
                 env: process.env,
             });
             fs_1.writeFileSync(paths.config, config);
