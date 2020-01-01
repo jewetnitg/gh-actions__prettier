@@ -1,4 +1,5 @@
 import * as core from "@actions/core";
+import { execSync } from "child_process";
 import { writeFileSync } from "fs";
 
 const paths = {
@@ -11,6 +12,9 @@ async function run(): Promise<void> {
         const config = core.getInput("config");
         const ignore = core.getInput("ignore");
 
+        execSync(`npm install -D prettier`, {
+            env: process.env,
+        });
         writeFileSync(paths.config, config);
         writeFileSync(paths.ignore, ignore);
     } catch (error) {

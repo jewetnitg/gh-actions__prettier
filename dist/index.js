@@ -50,6 +50,13 @@ module.exports = require("os");
 
 /***/ }),
 
+/***/ 129:
+/***/ (function(module) {
+
+module.exports = require("child_process");
+
+/***/ }),
+
 /***/ 198:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -73,6 +80,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
+const child_process_1 = __webpack_require__(129);
 const fs_1 = __webpack_require__(747);
 const paths = {
     config: ".prettierrc.json",
@@ -83,6 +91,9 @@ function run() {
         try {
             const config = core.getInput("config");
             const ignore = core.getInput("ignore");
+            child_process_1.execSync(`npm install -D prettier`, {
+                env: process.env,
+            });
             fs_1.writeFileSync(paths.config, config);
             fs_1.writeFileSync(paths.ignore, ignore);
         }
