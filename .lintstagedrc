@@ -1,0 +1,6 @@
+{
+    "*.{yaml,yml,json,md,ts,js}": [
+        "node_modules/.bin/prettier --write",
+        "git add"
+    ]
+}
