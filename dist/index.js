@@ -99,7 +99,7 @@ function run() {
             const json = JSON.stringify({
                 format: `prettier --write ${extensionGlobs}`,
                 "format-check": `prettier --check ${extensionGlobs}`,
-            });
+            }).replace("'", "\\'");
             child_process_1.execSync(`npm install -D prettier`, { env: process.env });
             child_process_1.execSync(`jq '.scripts += ${json}' package.json | tee package.json`, {
                 env: process.env,

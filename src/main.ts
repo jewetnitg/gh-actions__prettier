@@ -21,7 +21,7 @@ async function run(): Promise<void> {
         const json = JSON.stringify({
             format: `prettier --write ${extensionGlobs}`,
             "format-check": `prettier --check ${extensionGlobs}`,
-        });
+        }).replace("'", "\\'");
 
         execSync(`npm install -D prettier`, { env: process.env });
         execSync(`jq '.scripts += ${json}' package.json | tee package.json`, {
