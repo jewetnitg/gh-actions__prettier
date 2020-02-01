@@ -403,6 +403,9 @@ const apply = ({ config, ignore, extensionGlobs }) => __awaiter(void 0, void 0, 
         [paths.config]: config,
         [paths.ignore]: ignore,
     });
+    yield helpers_1.commitChanges("Add prettier");
+    yield helpers_1.runNpmScript("format");
+    yield helpers_1.commitChanges("Format code using prettier");
 });
 exports.default = apply;
 
@@ -2296,6 +2299,21 @@ exports.transformPackageJson = (transformer) => __awaiter(void 0, void 0, void 0
 });
 exports.addScriptsToPackageJson = (scripts) => __awaiter(void 0, void 0, void 0, function* () {
     return exports.transformPackageJson(pkg => (Object.assign(Object.assign({}, pkg), { scripts: Object.assign(Object.assign({}, (pkg.scripts || {})), scripts) })));
+});
+const GIT_USER_NAME = "GitHub Action";
+const GIT_USER_EMAIL = "action@github.com";
+exports.runNpmScript = (scriptName, args = []) => __awaiter(void 0, void 0, void 0, function* () {
+    yield execa_1.default("npm", [
+        "run",
+        scriptName,
+        ...(args.length ? ["--", ...args] : []),
+    ]);
+});
+exports.commitChanges = (message) => __awaiter(void 0, void 0, void 0, function* () {
+    yield execa_1.default("git", ["add", "."]);
+    yield execa_1.default("git", ["config", "--local", "user.name", GIT_USER_NAME]);
+    yield execa_1.default("git", ["config", "--local", "user.email", GIT_USER_EMAIL]);
+    yield execa_1.default("git", ["commit", "-am", message]);
 });
 
 

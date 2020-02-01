@@ -1,6 +1,8 @@
 import {
     addScriptsToPackageJson,
+    commitChanges,
     installDevDependencies,
+    runNpmScript,
     writeFiles,
 } from "./helpers";
 import { Inputs } from "./inputs";
@@ -21,6 +23,10 @@ const apply = async ({ config, ignore, extensionGlobs }: Inputs) => {
         [paths.config]: config,
         [paths.ignore]: ignore,
     });
+    await commitChanges("Add prettier");
+
+    await runNpmScript("format");
+    await commitChanges("Format code using prettier");
 };
 
 export default apply;

@@ -67,3 +67,21 @@ export const addScriptsToPackageJson = async (scripts: {
             ...scripts,
         },
     }));
+
+const GIT_USER_NAME = "GitHub Action";
+const GIT_USER_EMAIL = "action@github.com";
+
+export const runNpmScript = async (scriptName: string, args: string[] = []) => {
+    await execa("npm", [
+        "run",
+        scriptName,
+        ...(args.length ? ["--", ...args] : []),
+    ]);
+};
+
+export const commitChanges = async (message: string) => {
+    await execa("git", ["add", "."]);
+    await execa("git", ["config", "--local", "user.name", GIT_USER_NAME]);
+    await execa("git", ["config", "--local", "user.email", GIT_USER_EMAIL]);
+    await execa("git", ["commit", "-am", message]);
+};
