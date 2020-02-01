@@ -24,7 +24,11 @@
     "author": "Rik Hoffbauer",
     "license": "MIT",
     "dependencies": {
-        "@actions/core": "^1.2.0"
+        "@actions/core": "^1.2.0",
+        "@types/fs-extra": "^8.0.1",
+        "@types/prettier": "^1.19.0",
+        "execa": "^4.0.0",
+        "fs-extra": "^8.1.0"
     },
     "devDependencies": {
         "@types/jest": "^24.0.23",
