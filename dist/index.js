@@ -391,9 +391,12 @@ const helpers_1 = __webpack_require__(441);
 const paths = {
     config: ".prettierrc.json",
     ignore: ".prettierignore",
-    packageJson: "package.json",
 };
-const apply = ({ config, ignore, extensionGlobs }) => __awaiter(void 0, void 0, void 0, function* () {
+const apply = ({ config, ignore, extensions, githubToken }) => __awaiter(void 0, void 0, void 0, function* () {
+    const git = helpers_1.Git(githubToken);
+    const extensionGlobs = extensions
+        .map(ext => ext.replace(/\s+/g, ""))
+        .map(ext => `'**/*.${ext}'`);
     yield helpers_1.installDevDependencies(["prettier"]);
     yield helpers_1.addScriptsToPackageJson({
         format: `prettier --write ${extensionGlobs.join(" ")}`,
@@ -403,9 +406,17 @@ const apply = ({ config, ignore, extensionGlobs }) => __awaiter(void 0, void 0, 
         [paths.config]: config,
         [paths.ignore]: ignore,
     });
-    yield helpers_1.commitChanges("Add prettier");
+    yield git
+        .add(".")
+        .commit("Add prettier")
+        .push()
+        .execute();
     yield helpers_1.runNpmScript("format");
-    yield helpers_1.commitChanges("Format code using prettier");
+    yield git
+        .add(".")
+        .commit("Format code using prettier")
+        .push()
+        .execute();
 });
 exports.default = apply;
 
@@ -2300,6 +2311,9 @@ exports.transformPackageJson = (transformer) => __awaiter(void 0, void 0, void 0
 exports.addScriptsToPackageJson = (scripts) => __awaiter(void 0, void 0, void 0, function* () {
     return exports.transformPackageJson(pkg => (Object.assign(Object.assign({}, pkg), { scripts: Object.assign(Object.assign({}, (pkg.scripts || {})), scripts) })));
 });
+const { GITHUB_REPOSITORY, GITHUB_ACTOR } = process.env;
+const GIT_REMOTE_NAME = "github";
+const GIT_BRANCH = "develop";
 const GIT_USER_NAME = "GitHub Action";
 const GIT_USER_EMAIL = "action@github.com";
 exports.runNpmScript = (scriptName, args = []) => __awaiter(void 0, void 0, void 0, function* () {
@@ -2309,12 +2323,57 @@ exports.runNpmScript = (scriptName, args = []) => __awaiter(void 0, void 0, void
         ...(args.length ? ["--", ...args] : []),
     ]);
 });
-exports.commitChanges = (message) => __awaiter(void 0, void 0, void 0, function* () {
-    yield execa_1.default("git", ["add", "."]);
-    yield execa_1.default("git", ["config", "--local", "user.name", GIT_USER_NAME]);
-    yield execa_1.default("git", ["config", "--local", "user.email", GIT_USER_EMAIL]);
-    yield execa_1.default("git", ["commit", "-am", message]);
-});
+const initialGitCommands = (githubToken) => {
+    const remoteUrl = `https://${GITHUB_ACTOR}:${githubToken}@github.com/${GITHUB_REPOSITORY}.git`;
+    return [
+        ["git", ["remote", "add", GIT_REMOTE_NAME, remoteUrl]],
+        ["git", ["config", "--local", "user.name", GIT_USER_NAME]],
+        ["git", ["config", "--local", "user.email", GIT_USER_EMAIL]],
+        ["git", ["checkout", "-b", GIT_BRANCH]],
+    ];
+};
+exports.Git = (githubToken) => {
+    let shouldExecute = false;
+    let commands = initialGitCommands(githubToken);
+    const git = {
+        add: (files = ["."]) => {
+            if (shouldExecute) {
+                throw new Error(`Execute before performing another git action`);
+            }
+            commands.push([
+                "git",
+                [
+                    "add",
+                    ...(Array.isArray(files) ? files : [files]).filter(Boolean),
+                ],
+            ]);
+            return git;
+        },
+        commit: (message) => {
+            if (shouldExecute) {
+                throw new Error(`Execute before performing another git action`);
+            }
+            commands.push(["git", ["commit", "-am", message]]);
+            return git;
+        },
+        push: (flags = []) => {
+            if (shouldExecute) {
+                throw new Error(`Execute before performing another git action`);
+            }
+            commands.push(["git", ["push", GIT_BRANCH, ...flags]]);
+            shouldExecute = true;
+            return git;
+        },
+        execute: () => __awaiter(void 0, void 0, void 0, function* () {
+            for (const [command, args] of commands) {
+                yield execa_1.default(command, args);
+            }
+            shouldExecute = false;
+            commands = initialGitCommands(githubToken);
+        }),
+    };
+    return git;
+};
 
 
 /***/ }),
@@ -5553,6 +5612,7 @@ exports.getInputs = () => {
         .filter(Boolean);
     return {
         ignore: core.getInput("ignore"),
+        githubToken: core.getInput("githubToken"),
         extensions: extensions,
         extensionGlobs: extensions
             .map(ext => ext.replace(/\s+/g, ""))

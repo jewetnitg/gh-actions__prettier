@@ -6,6 +6,7 @@ export interface Inputs {
     ignore: string;
     extensions: string[];
     extensionGlobs: string[];
+    githubToken: string;
 }
 
 export const getInputs = (): Inputs => {
@@ -16,6 +17,7 @@ export const getInputs = (): Inputs => {
 
     return {
         ignore: core.getInput("ignore"),
+        githubToken: core.getInput("githubToken"),
         extensions: extensions,
         extensionGlobs: extensions
             .map(ext => ext.replace(/\s+/g, ""))

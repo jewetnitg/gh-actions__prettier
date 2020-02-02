@@ -68,6 +68,10 @@ export const addScriptsToPackageJson = async (scripts: {
         },
     }));
 
+const { GITHUB_REPOSITORY, GITHUB_ACTOR } = process.env;
+
+const GIT_REMOTE_NAME = "github";
+const GIT_BRANCH = "develop";
 const GIT_USER_NAME = "GitHub Action";
 const GIT_USER_EMAIL = "action@github.com";
 
@@ -79,9 +83,66 @@ export const runNpmScript = async (scriptName: string, args: string[] = []) => {
     ]);
 };
 
-export const commitChanges = async (message: string) => {
-    await execa("git", ["add", "."]);
-    await execa("git", ["config", "--local", "user.name", GIT_USER_NAME]);
-    await execa("git", ["config", "--local", "user.email", GIT_USER_EMAIL]);
-    await execa("git", ["commit", "-am", message]);
+const initialGitCommands = (githubToken: string): [string, string[]][] => {
+    const remoteUrl = `https://${GITHUB_ACTOR}:${githubToken}@github.com/${GITHUB_REPOSITORY}.git`;
+    return [
+        ["git", ["remote", "add", GIT_REMOTE_NAME, remoteUrl]],
+        ["git", ["config", "--local", "user.name", GIT_USER_NAME]],
+        ["git", ["config", "--local", "user.email", GIT_USER_EMAIL]],
+        ["git", ["checkout", "-b", GIT_BRANCH]],
+    ];
+};
+
+export const Git = (githubToken: string) => {
+    let shouldExecute = false;
+    let commands = initialGitCommands(githubToken);
+
+    const git = {
+        add: (files: string[] | string = ["."]) => {
+            if (shouldExecute) {
+                throw new Error(`Execute before performing another git action`);
+            }
+
+            commands.push([
+                "git",
+                [
+                    "add",
+                    ...(Array.isArray(files) ? files : [files]).filter(Boolean),
+                ],
+            ]);
+
+            return git;
+        },
+        commit: (message: string) => {
+            if (shouldExecute) {
+                throw new Error(`Execute before performing another git action`);
+            }
+
+            commands.push(["git", ["commit", "-am", message]]);
+
+            return git;
+        },
+        push: (flags: string[] = []) => {
+            if (shouldExecute) {
+                throw new Error(`Execute before performing another git action`);
+            }
+
+            commands.push(["git", ["push", GIT_BRANCH, ...flags]]);
+
+            shouldExecute = true;
+
+            return git;
+        },
+        execute: async () => {
+            for (const [command, args] of commands) {
+                await execa(command, args);
+            }
+
+            shouldExecute = false;
+
+            commands = initialGitCommands(githubToken);
+        },
+    };
+
+    return git;
 };

@@ -1,6 +1,6 @@
 import {
     addScriptsToPackageJson,
-    commitChanges,
+    Git,
     installDevDependencies,
     runNpmScript,
     writeFiles,
@@ -10,10 +10,14 @@ import { Inputs } from "./inputs";
 const paths = {
     config: ".prettierrc.json",
     ignore: ".prettierignore",
-    packageJson: "package.json",
 };
 
-const apply = async ({ config, ignore, extensionGlobs }: Inputs) => {
+const apply = async ({ config, ignore, extensions, githubToken }: Inputs) => {
+    const git = Git(githubToken);
+    const extensionGlobs = extensions
+        .map(ext => ext.replace(/\s+/g, ""))
+        .map(ext => `'**/*.${ext}'`);
+
     await installDevDependencies(["prettier"]);
     await addScriptsToPackageJson({
         format: `prettier --write ${extensionGlobs.join(" ")}`,
@@ -23,10 +27,19 @@ const apply = async ({ config, ignore, extensionGlobs }: Inputs) => {
         [paths.config]: config,
         [paths.ignore]: ignore,
     });
-    await commitChanges("Add prettier");
+    await git
+        .add(".")
+        .commit("Add prettier")
+        .push()
+        .execute();
 
     await runNpmScript("format");
-    await commitChanges("Format code using prettier");
+
+    await git
+        .add(".")
+        .commit("Format code using prettier")
+        .push()
+        .execute();
 };
 
 export default apply;
