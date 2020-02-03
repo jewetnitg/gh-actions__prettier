@@ -3,7 +3,7 @@ description: "prettier github action"
 author: "Rik Hoffbauer"
 inputs:
     config:
-        description: ".prettierrc config."
+        description: ".prettierrc config"
         required: false
         default: |
             {
@@ -18,7 +18,7 @@ inputs:
             }
 
     ignore:
-        description: ".prettierignore rules."
+        description: ".prettierignore rules"
         required: false
         default: |
             build/
@@ -26,7 +26,7 @@ inputs:
             package-lock.json
 
     extensions:
-        description: "Extensions that should be formatted."
+        description: "Extensions that should be formatted"
         required: false
         default: |
             js
