@@ -392,18 +392,23 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const execa_1 = __importDefault(__webpack_require__(955));
 const config_1 = __importDefault(__webpack_require__(478));
-const initialGitCommands = (githubToken) => {
+const initialGitCommands = (githubToken) => __awaiter(void 0, void 0, void 0, function* () {
     const remoteUrl = config_1.default.git.remote.url(githubToken);
+    const { stdout } = yield execa_1.default("git", ["remote"]);
+    const hasRemote = stdout.split("\n").includes(config_1.default.git.remote.name);
     return [
-        ["git", ["remote", "add", config_1.default.git.remote.name, remoteUrl]],
+        !hasRemote && [
+            "git",
+            ["remote", "add", config_1.default.git.remote.name, remoteUrl],
+        ],
         ["git", ["config", "--local", "user.name", config_1.default.git.user.name]],
         ["git", ["config", "--local", "user.email", config_1.default.git.user.email]],
         ["git", ["checkout", "-b", config_1.default.git.branch]],
-    ];
-};
+    ].filter(Boolean);
+});
 const Git = (githubToken) => {
+    let commands = [];
     let shouldExecute = false;
-    let commands = initialGitCommands(githubToken);
     const git = {
         add: (files = ["."]) => {
             if (shouldExecute) {
@@ -434,11 +439,14 @@ const Git = (githubToken) => {
             return git;
         },
         execute: () => __awaiter(void 0, void 0, void 0, function* () {
-            for (const [command, args] of commands) {
+            for (const [command, args] of [
+                ...(yield initialGitCommands(githubToken)),
+                ...commands,
+            ]) {
                 yield execa_1.default(command, args);
             }
             shouldExecute = false;
-            commands = initialGitCommands(githubToken);
+            commands = yield initialGitCommands(githubToken);
         }),
     };
     return git;

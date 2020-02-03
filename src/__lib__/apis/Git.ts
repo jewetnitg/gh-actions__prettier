@@ -1,21 +1,29 @@
 import execa from "execa";
 import config from "../../config";
 
-const initialGitCommands = (githubToken: string): [string, string[]][] => {
+const initialGitCommands = async (
+    githubToken: string,
+): Promise<[string, string[]][]> => {
     const remoteUrl = config.git.remote.url(githubToken);
+    const { stdout } = await execa("git", ["remote"]);
+    const hasRemote = stdout.split("\n").includes(config.git.remote.name);
+
     return [
-        ["git", ["remote", "add", config.git.remote.name, remoteUrl]],
+        !hasRemote && [
+            "git",
+            ["remote", "add", config.git.remote.name, remoteUrl],
+        ],
         ["git", ["config", "--local", "user.name", config.git.user.name]],
         ["git", ["config", "--local", "user.email", config.git.user.email]],
         ["git", ["checkout", "-b", config.git.branch]],
-    ];
+    ].filter(Boolean) as [string, string[]][];
 };
 
 type Git = ReturnType<typeof Git>;
 
 const Git = (githubToken: string) => {
+    let commands: [string, string[]][] = [];
     let shouldExecute = false;
-    let commands = initialGitCommands(githubToken);
 
     const git = {
         add: (files: string[] | string = ["."]) => {
@@ -54,13 +62,16 @@ const Git = (githubToken: string) => {
             return git;
         },
         execute: async () => {
-            for (const [command, args] of commands) {
+            for (const [command, args] of [
+                ...(await initialGitCommands(githubToken)),
+                ...commands,
+            ]) {
                 await execa(command, args);
             }
 
             shouldExecute = false;
 
-            commands = initialGitCommands(githubToken);
+            commands = await initialGitCommands(githubToken);
         },
     };
 
