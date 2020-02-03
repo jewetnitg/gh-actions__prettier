@@ -394,19 +394,12 @@ const child_process_1 = __webpack_require__(129);
 const execa_1 = __importDefault(__webpack_require__(955));
 const config_1 = __importDefault(__webpack_require__(478));
 const initialGitCommands = (githubToken) => __awaiter(void 0, void 0, void 0, function* () {
-    const remoteUrl = config_1.default.git.remote.url(githubToken);
-    const { stdout } = yield execa_1.default("git", ["remote"]);
     // TODO make async
     const branches = child_process_1.execSync(`git branch | tail`)
         .toString()
         .split("\n")
         .map(v => v.replace("*", "").replace(/\s+/g, ""));
-    const hasRemote = stdout.split("\n").includes(config_1.default.git.remote.name);
     return [
-        !hasRemote && [
-            "git",
-            ["remote", "add", config_1.default.git.remote.name, remoteUrl],
-        ],
         ["git", ["config", "--local", "user.name", config_1.default.git.user.name]],
         ["git", ["config", "--local", "user.email", config_1.default.git.user.email]],
         [
@@ -444,10 +437,11 @@ const Git = (githubToken) => {
             return git;
         },
         push: (flags = []) => {
+            const remoteUrl = config_1.default.git.remote.url(githubToken);
             if (shouldExecute) {
                 throw new Error(`Execute before performing another git action`);
             }
-            commands.push(["git", ["push", config_1.default.git.branch, ...flags]]);
+            commands.push(["git", ["push", '-u', remoteUrl, config_1.default.git.branch, ...flags]]);
             shouldExecute = true;
             return git;
         },
