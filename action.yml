@@ -2,6 +2,11 @@ name: "prettier"
 description: "prettier github action"
 author: "Rik Hoffbauer"
 inputs:
+    githubToken:
+        description: |
+            GitHub Token, allows us to push to this repository.
+            Can be passed in using $\{{ secrets.GITHUB_TOKEN }}
+        required: true
     config:
         description: ".prettierrc config"
         required: false

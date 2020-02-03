@@ -441,7 +441,10 @@ const Git = (githubToken) => {
             if (shouldExecute) {
                 throw new Error(`Execute before performing another git action`);
             }
-            commands.push(["git", ["push", '-u', remoteUrl, config_1.default.git.branch, ...flags]]);
+            commands.push([
+                "git",
+                ["push", "-u", remoteUrl, config_1.default.git.branch, ...flags],
+            ]);
             shouldExecute = true;
             return git;
         },
