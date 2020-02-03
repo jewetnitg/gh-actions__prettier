@@ -400,7 +400,7 @@ const initialGitCommands = (githubToken) => __awaiter(void 0, void 0, void 0, fu
     const branches = child_process_1.execSync(`git branch | tail`)
         .toString()
         .split("\n")
-        .map(v => v.replace("*", "").replace(/\s+/g, "¬"));
+        .map(v => v.replace("*", "").replace(/\s+/g, ""));
     const hasRemote = stdout.split("\n").includes(config_1.default.git.remote.name);
     return [
         !hasRemote && [

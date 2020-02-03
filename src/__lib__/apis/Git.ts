@@ -11,7 +11,7 @@ const initialGitCommands = async (
     const branches = execSync(`git branch | tail`)
         .toString()
         .split("\n")
-        .map(v => v.replace("*", "").replace(/\s+/g, "¬"));
+        .map(v => v.replace("*", "").replace(/\s+/g, ""));
     const hasRemote = stdout.split("\n").includes(config.git.remote.name);
 
     return [
