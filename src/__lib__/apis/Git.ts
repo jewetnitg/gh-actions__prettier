@@ -1,3 +1,4 @@
+import { execSync } from "child_process";
 import execa from "execa";
 import config from "../../config";
 
@@ -6,6 +7,11 @@ const initialGitCommands = async (
 ): Promise<[string, string[]][]> => {
     const remoteUrl = config.git.remote.url(githubToken);
     const { stdout } = await execa("git", ["remote"]);
+    // TODO make async
+    const branches = execSync(`git branch | tail`)
+        .toString()
+        .split("\n")
+        .map(v => v.replace("*", "").replace(/\s+/g, "¬"));
     const hasRemote = stdout.split("\n").includes(config.git.remote.name);
 
     return [
@@ -15,7 +21,14 @@ const initialGitCommands = async (
         ],
         ["git", ["config", "--local", "user.name", config.git.user.name]],
         ["git", ["config", "--local", "user.email", config.git.user.email]],
-        ["git", ["checkout", "-b", config.git.branch]],
+        [
+            "git",
+            [
+                "checkout",
+                !branches.includes(config.git.branch) && "-b",
+                config.git.branch,
+            ].filter(Boolean),
+        ],
     ].filter(Boolean) as [string, string[]][];
 };
 
