@@ -2,9 +2,7 @@ import { execSync } from "child_process";
 import execa from "execa";
 import config from "../../config";
 
-const initialGitCommands = async (
-    githubToken: string,
-): Promise<[string, string[]][]> => {
+const initialGitCommands = async (): Promise<[string, string[]][]> => {
     // TODO make async
     const branches = execSync(`git branch | tail`)
         .toString()
@@ -73,7 +71,7 @@ const Git = (githubToken: string) => {
         },
         execute: async () => {
             for (const [command, args] of [
-                ...(await initialGitCommands(githubToken)),
+                ...(await initialGitCommands()),
                 ...commands,
             ]) {
                 await execa(command, args);
@@ -81,7 +79,7 @@ const Git = (githubToken: string) => {
 
             shouldExecute = false;
 
-            commands = await initialGitCommands(githubToken);
+            commands = await initialGitCommands();
         },
     };
 

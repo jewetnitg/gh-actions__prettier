@@ -393,7 +393,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const child_process_1 = __webpack_require__(129);
 const execa_1 = __importDefault(__webpack_require__(955));
 const config_1 = __importDefault(__webpack_require__(478));
-const initialGitCommands = (githubToken) => __awaiter(void 0, void 0, void 0, function* () {
+const initialGitCommands = () => __awaiter(void 0, void 0, void 0, function* () {
     // TODO make async
     const branches = child_process_1.execSync(`git branch | tail`)
         .toString()
@@ -450,13 +450,13 @@ const Git = (githubToken) => {
         },
         execute: () => __awaiter(void 0, void 0, void 0, function* () {
             for (const [command, args] of [
-                ...(yield initialGitCommands(githubToken)),
+                ...(yield initialGitCommands()),
                 ...commands,
             ]) {
                 yield execa_1.default(command, args);
             }
             shouldExecute = false;
-            commands = yield initialGitCommands(githubToken);
+            commands = yield initialGitCommands();
         }),
     };
     return git;
