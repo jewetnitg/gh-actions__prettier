@@ -1,4 +1,3 @@
-import * as core from "@actions/core";
 import ChildProcess from "./ChildProcess";
 import Fs from "./Fs";
 import Git from "./Git";
@@ -20,7 +19,7 @@ export interface ApiOptions {
 
 const Api = ({
     git: {
-        token = core.getInput("githubToken"),
+        token = process.env.GITHUB_TOKEN || "",
         user = process.env.GITHUB_ACTOR || "",
         email = "action@github.com",
         branch = "develop",

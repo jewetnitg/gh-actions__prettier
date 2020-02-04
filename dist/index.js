@@ -406,6 +406,7 @@ const initialGitCommands = (git) => __awaiter(void 0, void 0, void 0, function* 
 const Git = (options) => {
     const { branch, user, token, repository } = options;
     const { execa, exec } = ChildProcess_1.default();
+    const remoteUrl = `https://${user}:${token}@github.com/${repository}.git`;
     let commands = [];
     let shouldExecute = false;
     const git = {
@@ -437,11 +438,13 @@ const Git = (options) => {
             return git;
         },
         push: (flags = []) => {
-            const remoteUrl = `https://${user}:${token}@github.com/${repository}.git`;
             if (shouldExecute) {
                 throw new Error(`Execute before performing another git action`);
             }
-            commands.push(["git", ["push", "-u", remoteUrl, branch, ...flags]]);
+            commands.push([
+                "git",
+                ["push", "--force", "-u", remoteUrl, branch, ...flags],
+            ]);
             shouldExecute = true;
             return git;
         },
@@ -5026,23 +5029,15 @@ module.exports.default = mimicFn;
 
 "use strict";
 
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const core = __importStar(__webpack_require__(470));
 const ChildProcess_1 = __importDefault(__webpack_require__(331));
 const Fs_1 = __importDefault(__webpack_require__(483));
 const Git_1 = __importDefault(__webpack_require__(50));
 const Npm_1 = __importDefault(__webpack_require__(706));
-const Api = ({ git: { token = core.getInput("githubToken"), user = process.env.GITHUB_ACTOR || "", email = "action@github.com", branch = "develop", repository = process.env.GITHUB_REPOSITORY || "", } = {}, defaultJsonIndent = 2, } = {}) => {
+const Api = ({ git: { token = process.env.GITHUB_TOKEN || "", user = process.env.GITHUB_ACTOR || "", email = "action@github.com", branch = "develop", repository = process.env.GITHUB_REPOSITORY || "", } = {}, defaultJsonIndent = 2, } = {}) => {
     const api = {
         fs: Fs_1.default({ defaultJsonIndent }),
         npm: Npm_1.default({ defaultJsonIndent }),
