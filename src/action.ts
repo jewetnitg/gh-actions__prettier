@@ -1,12 +1,12 @@
 import { Options } from "prettier";
-import { ActionBuilder, DefaultInputs } from "./__lib__";
+import { ActionBuilder } from "./__lib__";
 
 const paths = {
     config: ".prettierrc.json",
     ignore: ".prettierignore",
 };
 
-interface Inputs extends DefaultInputs {
+interface Inputs {
     config: Options;
     extensions: string[];
     extensionGlobs: string[];

@@ -11,6 +11,8 @@ inputs:
                 ruby: "@prettier/plugin-ruby"
                 pug: "@prettier/plugin-pug"
                 php: "@prettier/plugin-php"
+        default: |
+            @prettier/plugin-xml
     config:
         metadata:
             type: json

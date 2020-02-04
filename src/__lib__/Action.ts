@@ -1,13 +1,9 @@
 import * as core from "@actions/core";
 import Api from "./apis";
 import { ApiOptions } from "./apis/Api";
-import { DefaultInputs } from "./DefaultInputs";
 
-export type StepFn<TInputs extends DefaultInputs> = (
-    api: Api,
-    inputs: TInputs,
-) => Promise<void>;
-const Action = <TInputs extends DefaultInputs>(
+export type StepFn<TInputs> = (api: Api, inputs: TInputs) => Promise<void>;
+const Action = <TInputs>(
     steps: [string, StepFn<TInputs>][],
     getInputs: () => TInputs,
 ) => ({

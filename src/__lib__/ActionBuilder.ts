@@ -1,10 +1,9 @@
 import * as core from "@actions/core";
 import Action, { StepFn } from "./Action";
-import { DefaultInputs } from "./DefaultInputs";
 
 export type InputDeserializer<TDeserialized> = (input: string) => TDeserialized;
 
-const ActionBuilder = <TInputs extends DefaultInputs>() => {
+const ActionBuilder = <TInputs>() => {
     const steps: [string, StepFn<TInputs>][] = [];
     const inputDeserializers: [
         keyof TInputs,
