@@ -71,12 +71,12 @@ const Fs = () => {
                     await api.writeFile(path, content);
                 } else if (typeof content === "object") {
                     await api.writeJson(path, content);
+                } else {
+                    throw new Error(
+                        `Unable to write file ${path}, ` +
+                            `content has an invalid type "${typeof content}"`,
+                    );
                 }
-
-                throw new Error(
-                    `Unable to write file ${path}, ` +
-                        `content has an invalid type "${typeof content}"`,
-                );
             }
         },
     };

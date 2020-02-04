@@ -3315,8 +3315,10 @@ const Fs = () => {
                 else if (typeof content === "object") {
                     yield api.writeJson(path, content);
                 }
-                throw new Error(`Unable to write file ${path}, ` +
-                    `content has an invalid type "${typeof content}"`);
+                else {
+                    throw new Error(`Unable to write file ${path}, ` +
+                        `content has an invalid type "${typeof content}"`);
+                }
             }
         }) });
     return api;
