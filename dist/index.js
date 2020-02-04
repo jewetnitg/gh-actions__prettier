@@ -3198,12 +3198,45 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const fs = __importStar(__webpack_require__(226));
 const Fs = () => {
-    const api = Object.assign(Object.assign({}, fs), { writeJson: (path, obj) => {
-            core.debug(`Writing json file "${path}"`);
-            const json = JSON.stringify(obj, null, 2);
-            core.debug(json);
+    const api = Object.assign(Object.assign({}, fs), { detectJsonIndent: (path) => __awaiter(void 0, void 0, void 0, function* () {
+            const textContent = (yield api.readFile(path)).toString();
+            try {
+                JSON.parse(textContent);
+            }
+            catch (err) {
+                throw new Error(`Unable to detect json indent, provided string is not valid JSON`);
+            }
+            const indeterminableValues = ["{}", "[]", "null", "true", "false"];
+            if (indeterminableValues.includes(textContent) ||
+                // is a string
+                textContent.startsWith(`"`) ||
+                // is a number
+                textContent.match(/^\d+$/g)) {
+                return null;
+            }
+            const lines = textContent
+                .split("\n")
+                // remove empty lines
+                .filter(line => line && !line.match(/^\s+$/g));
+            if (lines.length < 3) {
+                return null;
+            }
+            // find a "regular" line
+            const line = lines.find(line => line.match(/^\s+"/g));
+            if (!line) {
+                return null;
+            }
+            return line.slice(0, line.indexOf(`"`));
+        }), writeJson: (path, obj) => __awaiter(void 0, void 0, void 0, function* () {
+            const defaultIndent = 2;
+            const indent = (yield api.pathExists(path))
+                ? (yield api.detectJsonIndent(path)) || defaultIndent
+                : defaultIndent;
+            core.info(`Writing json file "${path}"`);
+            const json = JSON.stringify(obj, null, indent);
+            core.info(json);
             return api.writeFile(path, json);
-        }, writeFiles: (files) => __awaiter(void 0, void 0, void 0, function* () {
+        }), writeFiles: (files) => __awaiter(void 0, void 0, void 0, function* () {
             const entries = Object.entries(files);
             for (const [path, content] of entries) {
                 if (typeof content === "string" || Buffer.isBuffer(content)) {

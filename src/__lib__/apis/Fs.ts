@@ -6,10 +6,56 @@ type Fs = ReturnType<typeof Fs>;
 const Fs = () => {
     const api = {
         ...fs,
-        writeJson: (path: string, obj: object) => {
-            core.debug(`Writing json file "${path}"`);
-            const json = JSON.stringify(obj, null, 2);
-            core.debug(json);
+        detectJsonIndent: async (path: string) => {
+            const textContent = (await api.readFile(path)).toString();
+
+            try {
+                JSON.parse(textContent);
+            } catch (err) {
+                throw new Error(
+                    `Unable to detect json indent, provided string is not valid JSON`,
+                );
+            }
+
+            const indeterminableValues = ["{}", "[]", "null", "true", "false"];
+
+            if (
+                indeterminableValues.includes(textContent) ||
+                // is a string
+                textContent.startsWith(`"`) ||
+                // is a number
+                textContent.match(/^\d+$/g)
+            ) {
+                return null;
+            }
+
+            const lines = textContent
+                .split("\n")
+                // remove empty lines
+                .filter(line => line && !line.match(/^\s+$/g));
+
+            if (lines.length < 3) {
+                return null;
+            }
+
+            // find a "regular" line
+            const line = lines.find(line => line.match(/^\s+"/g));
+
+            if (!line) {
+                return null;
+            }
+
+            return line.slice(0, line.indexOf(`"`));
+        },
+        writeJson: async (path: string, obj: object) => {
+            const defaultIndent = 2;
+            const indent = (await api.pathExists(path))
+                ? (await api.detectJsonIndent(path)) || defaultIndent
+                : defaultIndent;
+
+            core.info(`Writing json file "${path}"`);
+            const json = JSON.stringify(obj, null, indent);
+            core.info(json);
             return api.writeFile(path, json);
         },
         writeFiles: async (files: {
