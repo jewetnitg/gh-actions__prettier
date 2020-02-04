@@ -27,6 +27,7 @@ const initialGitCommands = async (git: Git): Promise<[string, string[]][]> =>
 const Git = (options: GitOptions) => {
     const { branch, user, token, repository } = options;
     const { execa, exec } = ChildProcess();
+    const remoteUrl = `https://${user}:${token}@github.com/${repository}.git`;
     let commands: [string, string[]][] = [];
     let shouldExecute = false;
 
@@ -63,13 +64,14 @@ const Git = (options: GitOptions) => {
             return git;
         },
         push: (flags: string[] = []) => {
-            const remoteUrl = `https://${user}:${token}@github.com/${repository}.git`;
-
             if (shouldExecute) {
                 throw new Error(`Execute before performing another git action`);
             }
 
-            commands.push(["git", ["push", "-u", remoteUrl, branch, ...flags]]);
+            commands.push([
+                "git",
+                ["push", "--force", "-u", remoteUrl, branch, ...flags],
+            ]);
 
             shouldExecute = true;
 
