@@ -1,35 +1,33 @@
-import { execSync } from "child_process";
-import execa from "execa";
 import config from "../../config";
-
-const initialGitCommands = async (): Promise<[string, string[]][]> => {
-    // TODO make async
-    const branches = execSync(`git branch | tail`)
-        .toString()
-        .split("\n")
-        .map(v => v.replace("*", "").replace(/\s+/g, ""));
-
-    return [
-        ["git", ["config", "--local", "user.name", config.git.user.name]],
-        ["git", ["config", "--local", "user.email", config.git.user.email]],
-        [
-            "git",
-            [
-                "checkout",
-                !branches.includes(config.git.branch) && "-b",
-                config.git.branch,
-            ].filter(Boolean),
-        ],
-    ].filter(Boolean) as [string, string[]][];
-};
+import ChildProcess from "./ChildProcess";
 
 type Git = ReturnType<typeof Git>;
 
 const Git = (githubToken: string) => {
+    const { execa, exec } = ChildProcess();
     let commands: [string, string[]][] = [];
     let shouldExecute = false;
+    const initialGitCommands = async (): Promise<[string, string[]][]> =>
+        [
+            ["git", ["config", "--local", "user.name", config.git.user.name]],
+            ["git", ["config", "--local", "user.email", config.git.user.email]],
+            [
+                "git",
+                [
+                    "checkout",
+                    !(await git.hasBranch(config.git.branch)) && "-b",
+                    config.git.branch,
+                ].filter(Boolean),
+            ],
+        ].filter(Boolean) as [string, string[]][];
 
     const git = {
+        getBranches: async () =>
+            (await exec(`git branch | tail`))
+                .split("\n")
+                .map(v => v.replace("*", "").replace(/\s+/g, "")),
+        hasBranch: async (branch: string) =>
+            (await git.getBranches()).includes(branch),
         add: (files: string[] | string = ["."]) => {
             if (shouldExecute) {
                 throw new Error(`Execute before performing another git action`);
@@ -56,6 +54,7 @@ const Git = (githubToken: string) => {
         },
         push: (flags: string[] = []) => {
             const remoteUrl = config.git.remote.url(githubToken);
+
             if (shouldExecute) {
                 throw new Error(`Execute before performing another git action`);
             }

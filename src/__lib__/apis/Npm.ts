@@ -1,5 +1,6 @@
-import execa from "execa";
-import { readJson, writeFile } from "fs-extra";
+import * as core from "@actions/core";
+import ChildProcess from "./ChildProcess";
+import Fs from "./Fs";
 
 type Npm = ReturnType<typeof Npm>;
 
@@ -14,6 +15,8 @@ const paths = {
 };
 
 const Npm = () => {
+    const { execa } = ChildProcess();
+    const { writeJson, readJson } = Fs();
     const npm = {
         install: Object.assign(
             async (
@@ -32,6 +35,14 @@ const Npm = () => {
                       ].filter(Boolean) as string[])
                     : [];
 
+                if (dependencies.length) {
+                    core.info(
+                        `Adding ${type} dependencies: ${dependencies.join(
+                            ", ",
+                        )}`,
+                    );
+                }
+
                 await execa(`npm`, [`install`, ...flags, ...dependencies], {
                     env: process.env,
                 });
@@ -45,32 +56,44 @@ const Npm = () => {
         ),
         packageJson: {
             scripts: {
-                add: async (scripts: { [name: string]: string }) =>
-                    npm.packageJson.transform(pkg => ({
+                add: async (scripts: { [name: string]: string }) => {
+                    const keys = Object.keys(scripts).join(", ");
+
+                    if (!keys.length) {
+                        return;
+                    }
+
+                    core.info(`Adding ${keys} scripts to package.json`);
+
+                    return npm.packageJson.transform(pkg => ({
                         ...pkg,
                         scripts: {
                             ...(pkg.scripts || {}),
                             ...scripts,
                         },
-                    })),
+                    }));
+                },
             },
             transform: async (
                 transformer: (pkg: {
                     [name: string]: any;
                 }) =>
                     | Promise<{ [name: string]: any } | void>
-                    | { [name: string]: any }
-                    | void,
+                    | ({ [name: string]: any } | void),
             ) => {
                 const pkg = await readJson(paths.packageJson);
+                const transformedPkg = (await transformer(pkg)) || pkg;
 
-                await writeFile(
-                    paths.packageJson,
-                    JSON.stringify((await transformer(pkg)) || pkg, null, 4),
-                );
+                await writeJson(paths.packageJson, transformedPkg);
             },
         },
         run: async (scriptName: string, args: string[] = []) => {
+            core.info(`Running npm script "${scriptName}"`);
+
+            if (args.length) {
+                core.info(`Script arguments: ${args.join(", ")}"`);
+            }
+
             await execa("npm", [
                 "run",
                 scriptName,

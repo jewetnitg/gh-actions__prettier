@@ -1,7 +1,10 @@
 import * as core from "@actions/core";
 import * as fs from "fs-extra";
+import config from "../../config";
 
 type Fs = ReturnType<typeof Fs>;
+
+export type JsonValue = object | string | number | boolean | null;
 
 const Fs = () => {
     const api = {
@@ -47,32 +50,33 @@ const Fs = () => {
 
             return line.slice(0, line.indexOf(`"`));
         },
-        writeJson: async (path: string, obj: object) => {
-            const defaultIndent = 2;
+        writeJson: async (path: string, content: JsonValue) => {
+            const defaultIndent = config.json.indent;
             const indent = (await api.pathExists(path))
                 ? (await api.detectJsonIndent(path)) || defaultIndent
                 : defaultIndent;
 
             core.info(`Writing json file "${path}"`);
-            const json = JSON.stringify(obj, null, indent);
+            const json = JSON.stringify(content, null, indent);
             core.info(json);
             return api.writeFile(path, json);
         },
         writeFiles: async (files: {
-            [name: string]: (string | Buffer) | object;
+            [name: string]: (string | Buffer) | JsonValue;
         }) => {
             const entries = Object.entries(files);
 
             for (const [path, content] of entries) {
                 if (typeof content === "string" || Buffer.isBuffer(content)) {
                     await api.writeFile(path, content);
-                } else if (content && typeof content === "object") {
+                } else if (typeof content === "object") {
                     await api.writeJson(path, content);
-                } else {
-                    throw new Error(
-                        `Unable to write file ${path}, content has an invalid type "${typeof content}"`,
-                    );
                 }
+
+                throw new Error(
+                    `Unable to write file ${path}, ` +
+                        `content has an invalid type "${typeof content}"`,
+                );
             }
         },
     };

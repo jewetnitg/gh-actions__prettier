@@ -390,32 +390,33 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const child_process_1 = __webpack_require__(129);
-const execa_1 = __importDefault(__webpack_require__(955));
 const config_1 = __importDefault(__webpack_require__(478));
-const initialGitCommands = () => __awaiter(void 0, void 0, void 0, function* () {
-    // TODO make async
-    const branches = child_process_1.execSync(`git branch | tail`)
-        .toString()
-        .split("\n")
-        .map(v => v.replace("*", "").replace(/\s+/g, ""));
-    return [
-        ["git", ["config", "--local", "user.name", config_1.default.git.user.name]],
-        ["git", ["config", "--local", "user.email", config_1.default.git.user.email]],
-        [
-            "git",
-            [
-                "checkout",
-                !branches.includes(config_1.default.git.branch) && "-b",
-                config_1.default.git.branch,
-            ].filter(Boolean),
-        ],
-    ].filter(Boolean);
-});
+const ChildProcess_1 = __importDefault(__webpack_require__(331));
 const Git = (githubToken) => {
+    const { execa, exec } = ChildProcess_1.default();
     let commands = [];
     let shouldExecute = false;
+    const initialGitCommands = () => __awaiter(void 0, void 0, void 0, function* () {
+        return [
+            ["git", ["config", "--local", "user.name", config_1.default.git.user.name]],
+            ["git", ["config", "--local", "user.email", config_1.default.git.user.email]],
+            [
+                "git",
+                [
+                    "checkout",
+                    !(yield git.hasBranch(config_1.default.git.branch)) && "-b",
+                    config_1.default.git.branch,
+                ].filter(Boolean),
+            ],
+        ].filter(Boolean);
+    });
     const git = {
+        getBranches: () => __awaiter(void 0, void 0, void 0, function* () {
+            return (yield exec(`git branch | tail`))
+                .split("\n")
+                .map(v => v.replace("*", "").replace(/\s+/g, ""));
+        }),
+        hasBranch: (branch) => __awaiter(void 0, void 0, void 0, function* () { return (yield git.getBranches()).includes(branch); }),
         add: (files = ["."]) => {
             if (shouldExecute) {
                 throw new Error(`Execute before performing another git action`);
@@ -453,7 +454,7 @@ const Git = (githubToken) => {
                 ...(yield initialGitCommands()),
                 ...commands,
             ]) {
-                yield execa_1.default(command, args);
+                yield execa(command, args);
             }
             shouldExecute = false;
             commands = yield initialGitCommands();
@@ -598,6 +599,54 @@ which.sync = whichSync
 
 /***/ }),
 
+/***/ 56:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const core = __importStar(__webpack_require__(470));
+const Action_1 = __importDefault(__webpack_require__(144));
+const ActionBuilder = () => {
+    const steps = [];
+    const inputDeserializers = [
+        //@ts-ignore
+        ["githubToken", String],
+    ];
+    const syntheticInputDeserializers = [];
+    const getInputs = () => syntheticInputDeserializers.reduce((inputs, [key, deserialize]) => (Object.assign(Object.assign({}, inputs), { [key]: deserialize(inputs) })), inputDeserializers.reduce((inputs, [key, deserialize]) => (Object.assign(Object.assign({}, inputs), { [key]: deserialize(core.getInput(key)) })), {}));
+    const builder = {
+        input: (name, deserializer) => {
+            inputDeserializers.push([name, deserializer]);
+            return builder;
+        },
+        syntheticInput: (name, deserializer) => {
+            syntheticInputDeserializers.push([name, deserializer]);
+            return builder;
+        },
+        step: (message, fn) => {
+            steps.push([message, fn]);
+            return builder;
+        },
+        build: () => Action_1.default(core.getInput("githubToken"), steps, getInputs),
+    };
+    return builder;
+};
+exports.default = ActionBuilder;
+
+
+/***/ }),
+
 /***/ 76:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -649,87 +698,11 @@ exports.default = action;
 
 "use strict";
 
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const core = __importStar(__webpack_require__(470));
-const Fs_1 = __importDefault(__webpack_require__(483));
-const Git_1 = __importDefault(__webpack_require__(50));
-const Npm_1 = __importDefault(__webpack_require__(706));
-exports.ActionBuilder = () => {
-    const steps = [];
-    const inputDeserializers = [
-        //@ts-ignore
-        ["githubToken", String],
-    ];
-    const syntheticInputDeserializers = [];
-    const getInputs = () => syntheticInputDeserializers.reduce((inputs, [key, deserialize]) => (Object.assign(Object.assign({}, inputs), { [key]: deserialize(inputs) })), inputDeserializers.reduce((inputs, [key, deserialize]) => (Object.assign(Object.assign({}, inputs), { [key]: deserialize(core.getInput(key)) })), {}));
-    const builder = {
-        input: (name, deserializer) => {
-            inputDeserializers.push([name, deserializer]);
-            return builder;
-        },
-        syntheticInput: (name, deserializer) => {
-            syntheticInputDeserializers.push([name, deserializer]);
-            return builder;
-        },
-        step: (message, fn) => {
-            steps.push([message, fn]);
-            return builder;
-        },
-        build: () => Action(core.getInput("githubToken"), steps, getInputs),
-    };
-    return builder;
-};
-const Action = (githubToken, steps, getInputs) => ({
-    run: () => __awaiter(void 0, void 0, void 0, function* () {
-        try {
-            const git = Git_1.default(githubToken);
-            for (const [message, fn] of steps) {
-                try {
-                    yield core.group(message, () => __awaiter(void 0, void 0, void 0, function* () {
-                        const api = {
-                            fs: Fs_1.default(),
-                            npm: Npm_1.default(),
-                            git,
-                            githubToken,
-                        };
-                        yield fn(api, getInputs());
-                        yield git
-                            .add(".")
-                            .commit(message)
-                            .execute();
-                    }));
-                }
-                catch (e) {
-                    core.setFailed(e.message);
-                    return;
-                }
-            }
-            yield git.push().execute();
-        }
-        catch (e) {
-            core.setFailed(e.message);
-        }
-    }),
-});
+var Action_1 = __webpack_require__(144);
+exports.Action = Action_1.default;
+var ActionBuilder_1 = __webpack_require__(56);
+exports.ActionBuilder = ActionBuilder_1.default;
 
 
 /***/ }),
@@ -1280,6 +1253,64 @@ module.exports = require("child_process");
 
 /***/ }),
 
+/***/ 144:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const core = __importStar(__webpack_require__(470));
+const apis_1 = __importDefault(__webpack_require__(252));
+const Action = (githubToken, steps, getInputs) => ({
+    run: () => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const api = apis_1.default(githubToken);
+            for (const [message, fn] of steps) {
+                try {
+                    yield core.group(message, () => __awaiter(void 0, void 0, void 0, function* () {
+                        yield fn(api, getInputs());
+                        yield api.git
+                            .add(".")
+                            .commit(message)
+                            .execute();
+                    }));
+                }
+                catch (e) {
+                    core.setFailed(e.message);
+                    return;
+                }
+            }
+            yield api.git.push().execute();
+        }
+        catch (e) {
+            core.setFailed(e.message);
+        }
+    }),
+});
+exports.default = Action;
+
+
+/***/ }),
+
 /***/ 145:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -1403,6 +1434,20 @@ module.exports = {
 
 /***/ }),
 
+/***/ 160:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+const u = __webpack_require__(676).fromCallback
+module.exports = {
+  copy: u(__webpack_require__(595))
+}
+
+
+/***/ }),
+
 /***/ 168:
 /***/ (function(module) {
 
@@ -1487,61 +1532,6 @@ module.exports = jsonFile
 
 /***/ }),
 
-/***/ 188:
-/***/ (function(module) {
-
-"use strict";
-
-const mergePromiseProperty = (spawned, promise, property) => {
-	// Starting the main `promise` is deferred to avoid consuming streams
-	const value = typeof promise === 'function' ?
-		(...args) => promise()[property](...args) :
-		promise[property].bind(promise);
-
-	Object.defineProperty(spawned, property, {
-		value,
-		writable: true,
-		enumerable: false,
-		configurable: true
-	});
-};
-
-// The return value is a mixin of `childProcess` and `Promise`
-const mergePromise = (spawned, promise) => {
-	mergePromiseProperty(spawned, promise, 'then');
-	mergePromiseProperty(spawned, promise, 'catch');
-	mergePromiseProperty(spawned, promise, 'finally');
-	return spawned;
-};
-
-// Use promises instead of `child_process` events
-const getSpawnedPromise = spawned => {
-	return new Promise((resolve, reject) => {
-		spawned.on('exit', (exitCode, signal) => {
-			resolve({exitCode, signal});
-		});
-
-		spawned.on('error', error => {
-			reject(error);
-		});
-
-		if (spawned.stdin) {
-			spawned.stdin.on('error', error => {
-				reject(error);
-			});
-		}
-	});
-};
-
-module.exports = {
-	mergePromise,
-	getSpawnedPromise
-};
-
-
-
-/***/ }),
-
 /***/ 197:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -1617,7 +1607,7 @@ module.exports = Object.assign(
   __webpack_require__(869),
   // Export extra methods:
   __webpack_require__(43),
-  __webpack_require__(774),
+  __webpack_require__(160),
   __webpack_require__(615),
   __webpack_require__(472),
   __webpack_require__(171),
@@ -1990,6 +1980,21 @@ function patch (fs) {
 
 /***/ }),
 
+/***/ 252:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Api_1 = __importDefault(__webpack_require__(648));
+exports.default = Api_1.default;
+
+
+/***/ }),
+
 /***/ 260:
 /***/ (function(__unusedmodule, exports) {
 
@@ -2061,7 +2066,7 @@ module.exports = isStream;
 
 const fs = __webpack_require__(598)
 const path = __webpack_require__(622)
-const invalidWin32Path = __webpack_require__(781).invalidWin32Path
+const invalidWin32Path = __webpack_require__(313).invalidWin32Path
 
 const o777 = parseInt('0777', 8)
 
@@ -2163,7 +2168,7 @@ module.exports = readShebang;
 
 const fs = __webpack_require__(598)
 const path = __webpack_require__(622)
-const invalidWin32Path = __webpack_require__(781).invalidWin32Path
+const invalidWin32Path = __webpack_require__(313).invalidWin32Path
 
 const o777 = parseInt('0777', 8)
 
@@ -2295,6 +2300,39 @@ const signalsByNumber=getSignalsByNumber();exports.signalsByNumber=signalsByNumb
 
 /***/ }),
 
+/***/ 313:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+const path = __webpack_require__(622)
+
+// get drive on windows
+function getRootPath (p) {
+  p = path.normalize(path.resolve(p)).split(path.sep)
+  if (p.length > 0) return p[0]
+  return null
+}
+
+// http://stackoverflow.com/a/62888/10333 contains more accurate
+// TODO: expand to include the rest
+const INVALID_PATH_CHARS = /[<>:"|?*]/
+
+function invalidWin32Path (p) {
+  const rp = getRootPath(p)
+  p = p.replace(rp, '')
+  return INVALID_PATH_CHARS.test(p)
+}
+
+module.exports = {
+  getRootPath,
+  invalidWin32Path
+}
+
+
+/***/ }),
+
 /***/ 322:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -2311,6 +2349,31 @@ module.exports = {
   pathExists: u(pathExists),
   pathExistsSync: fs.existsSync
 }
+
+
+/***/ }),
+
+/***/ 331:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const child_process_1 = __webpack_require__(129);
+const execa_1 = __importDefault(__webpack_require__(955));
+const ChildProcess = () => {
+    const api = {
+        exec: (command, options = {}) => new Promise((resolve, reject) => child_process_1.exec(command, options, (err, stdout, stderr) => err || stderr
+            ? reject(err || new Error(stderr))
+            : resolve(stdout))),
+        execa: execa_1.default,
+    };
+    return api;
+};
+exports.default = ChildProcess;
 
 
 /***/ }),
@@ -3156,10 +3219,13 @@ rimraf.sync = rimrafSync
 Object.defineProperty(exports, "__esModule", { value: true });
 const { GITHUB_REPOSITORY, GITHUB_ACTOR } = process.env;
 const config = {
+    json: {
+        indent: "  ",
+    },
     git: {
         branch: "develop",
         user: {
-            name: "GitHub Action",
+            name: GITHUB_ACTOR,
             email: "action@github.com",
         },
         remote: {
@@ -3194,9 +3260,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
     result["default"] = mod;
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const fs = __importStar(__webpack_require__(226));
+const config_1 = __importDefault(__webpack_require__(478));
 const Fs = () => {
     const api = Object.assign(Object.assign({}, fs), { detectJsonIndent: (path) => __awaiter(void 0, void 0, void 0, function* () {
             const textContent = (yield api.readFile(path)).toString();
@@ -3227,13 +3297,13 @@ const Fs = () => {
                 return null;
             }
             return line.slice(0, line.indexOf(`"`));
-        }), writeJson: (path, obj) => __awaiter(void 0, void 0, void 0, function* () {
-            const defaultIndent = 2;
+        }), writeJson: (path, content) => __awaiter(void 0, void 0, void 0, function* () {
+            const defaultIndent = config_1.default.json.indent;
             const indent = (yield api.pathExists(path))
                 ? (yield api.detectJsonIndent(path)) || defaultIndent
                 : defaultIndent;
             core.info(`Writing json file "${path}"`);
-            const json = JSON.stringify(obj, null, indent);
+            const json = JSON.stringify(content, null, indent);
             core.info(json);
             return api.writeFile(path, json);
         }), writeFiles: (files) => __awaiter(void 0, void 0, void 0, function* () {
@@ -3242,12 +3312,11 @@ const Fs = () => {
                 if (typeof content === "string" || Buffer.isBuffer(content)) {
                     yield api.writeFile(path, content);
                 }
-                else if (content && typeof content === "object") {
+                else if (typeof content === "object") {
                     yield api.writeJson(path, content);
                 }
-                else {
-                    throw new Error(`Unable to write file ${path}, content has an invalid type "${typeof content}"`);
-                }
+                throw new Error(`Unable to write file ${path}, ` +
+                    `content has an invalid type "${typeof content}"`);
             }
         }) });
     return api;
@@ -3429,7 +3498,7 @@ function processEmit (ev, arg) {
 
 const fs = __webpack_require__(598)
 const path = __webpack_require__(622)
-const copy = __webpack_require__(774).copy
+const copy = __webpack_require__(160).copy
 const remove = __webpack_require__(723).remove
 const mkdirp = __webpack_require__(727).mkdirp
 const pathExists = __webpack_require__(322).pathExists
@@ -4987,6 +5056,34 @@ module.exports.default = mimicFn;
 
 /***/ }),
 
+/***/ 648:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const ChildProcess_1 = __importDefault(__webpack_require__(331));
+const Fs_1 = __importDefault(__webpack_require__(483));
+const Git_1 = __importDefault(__webpack_require__(50));
+const Npm_1 = __importDefault(__webpack_require__(706));
+const Api = (githubToken) => {
+    const api = {
+        fs: Fs_1.default(),
+        npm: Npm_1.default(),
+        childProcess: ChildProcess_1.default(),
+        git: Git_1.default(githubToken),
+        githubToken,
+    };
+    return api;
+};
+exports.default = Api;
+
+
+/***/ }),
+
 /***/ 652:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -5343,16 +5440,26 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const execa_1 = __importDefault(__webpack_require__(955));
-const fs_extra_1 = __webpack_require__(226);
+const core = __importStar(__webpack_require__(470));
+const ChildProcess_1 = __importDefault(__webpack_require__(331));
+const Fs_1 = __importDefault(__webpack_require__(483));
 const paths = {
     packageJson: "package.json",
 };
 const Npm = () => {
+    const { execa } = ChildProcess_1.default();
+    const { writeJson, readJson } = Fs_1.default();
     const npm = {
         install: Object.assign((dependencies = [], { bundle = false, exact = false, type = "prod", } = {}) => __awaiter(void 0, void 0, void 0, function* () {
             const flags = dependencies.length
@@ -5362,7 +5469,10 @@ const Npm = () => {
                     exact && "--save-exact",
                 ].filter(Boolean)
                 : [];
-            yield execa_1.default(`npm`, [`install`, ...flags, ...dependencies], {
+            if (dependencies.length) {
+                core.info(`Adding ${type} dependencies: ${dependencies.join(", ")}`);
+            }
+            yield execa(`npm`, [`install`, ...flags, ...dependencies], {
                 env: process.env,
             });
         }), {
@@ -5371,16 +5481,26 @@ const Npm = () => {
         packageJson: {
             scripts: {
                 add: (scripts) => __awaiter(void 0, void 0, void 0, function* () {
+                    const keys = Object.keys(scripts).join(", ");
+                    if (!keys.length) {
+                        return;
+                    }
+                    core.info(`Adding ${keys} scripts to package.json`);
                     return npm.packageJson.transform(pkg => (Object.assign(Object.assign({}, pkg), { scripts: Object.assign(Object.assign({}, (pkg.scripts || {})), scripts) })));
                 }),
             },
             transform: (transformer) => __awaiter(void 0, void 0, void 0, function* () {
-                const pkg = yield fs_extra_1.readJson(paths.packageJson);
-                yield fs_extra_1.writeFile(paths.packageJson, JSON.stringify((yield transformer(pkg)) || pkg, null, 4));
+                const pkg = yield readJson(paths.packageJson);
+                const transformedPkg = (yield transformer(pkg)) || pkg;
+                yield writeJson(paths.packageJson, transformedPkg);
             }),
         },
         run: (scriptName, args = []) => __awaiter(void 0, void 0, void 0, function* () {
-            yield execa_1.default("npm", [
+            core.info(`Running npm script "${scriptName}"`);
+            if (args.length) {
+                core.info(`Script arguments: ${args.join(", ")}"`);
+            }
+            yield execa("npm", [
                 "run",
                 scriptName,
                 ...(args.length ? ["--", ...args] : []),
@@ -5609,10 +5729,43 @@ module.exports.argument = escapeArgument;
 "use strict";
 
 
-const u = __webpack_require__(676).fromCallback
-module.exports = {
-  copy: u(__webpack_require__(595))
+const cp = __webpack_require__(129);
+const parse = __webpack_require__(884);
+const enoent = __webpack_require__(15);
+
+function spawn(command, args, options) {
+    // Parse the arguments
+    const parsed = parse(command, args, options);
+
+    // Spawn the child process
+    const spawned = cp.spawn(parsed.command, parsed.args, parsed.options);
+
+    // Hook into child process "exit" event to emit an error if the command
+    // does not exists, see: https://github.com/IndigoUnited/node-cross-spawn/issues/16
+    enoent.hookChildProcess(spawned, parsed);
+
+    return spawned;
 }
+
+function spawnSync(command, args, options) {
+    // Parse the arguments
+    const parsed = parse(command, args, options);
+
+    // Spawn the child process
+    const result = cp.spawnSync(parsed.command, parsed.args, parsed.options);
+
+    // Analyze if the command does not exist, see: https://github.com/IndigoUnited/node-cross-spawn/issues/16
+    result.error = result.error || enoent.verifyENOENTSync(result.status, parsed);
+
+    return result;
+}
+
+module.exports = spawn;
+module.exports.spawn = spawn;
+module.exports.sync = spawnSync;
+
+module.exports._parse = parse;
+module.exports._enoent = enoent;
 
 
 /***/ }),
@@ -5667,34 +5820,56 @@ module.exports = function (/*streams...*/) {
 /***/ }),
 
 /***/ 781:
-/***/ (function(module, __unusedexports, __webpack_require__) {
+/***/ (function(module) {
 
 "use strict";
 
+const mergePromiseProperty = (spawned, promise, property) => {
+	// Starting the main `promise` is deferred to avoid consuming streams
+	const value = typeof promise === 'function' ?
+		(...args) => promise()[property](...args) :
+		promise[property].bind(promise);
 
-const path = __webpack_require__(622)
+	Object.defineProperty(spawned, property, {
+		value,
+		writable: true,
+		enumerable: false,
+		configurable: true
+	});
+};
 
-// get drive on windows
-function getRootPath (p) {
-  p = path.normalize(path.resolve(p)).split(path.sep)
-  if (p.length > 0) return p[0]
-  return null
-}
+// The return value is a mixin of `childProcess` and `Promise`
+const mergePromise = (spawned, promise) => {
+	mergePromiseProperty(spawned, promise, 'then');
+	mergePromiseProperty(spawned, promise, 'catch');
+	mergePromiseProperty(spawned, promise, 'finally');
+	return spawned;
+};
 
-// http://stackoverflow.com/a/62888/10333 contains more accurate
-// TODO: expand to include the rest
-const INVALID_PATH_CHARS = /[<>:"|?*]/
+// Use promises instead of `child_process` events
+const getSpawnedPromise = spawned => {
+	return new Promise((resolve, reject) => {
+		spawned.on('exit', (exitCode, signal) => {
+			resolve({exitCode, signal});
+		});
 
-function invalidWin32Path (p) {
-  const rp = getRootPath(p)
-  p = p.replace(rp, '')
-  return INVALID_PATH_CHARS.test(p)
-}
+		spawned.on('error', error => {
+			reject(error);
+		});
+
+		if (spawned.stdin) {
+			spawned.stdin.on('error', error => {
+				reject(error);
+			});
+		}
+	});
+};
 
 module.exports = {
-  getRootPath,
-  invalidWin32Path
-}
+	mergePromise,
+	getSpawnedPromise
+};
+
 
 
 /***/ }),
@@ -6332,7 +6507,7 @@ module.exports = {
 
 const path = __webpack_require__(622);
 const childProcess = __webpack_require__(129);
-const crossSpawn = __webpack_require__(956);
+const crossSpawn = __webpack_require__(774);
 const stripFinalNewline = __webpack_require__(588);
 const npmRunPath = __webpack_require__(621);
 const onetime = __webpack_require__(443);
@@ -6340,7 +6515,7 @@ const makeError = __webpack_require__(535);
 const normalizeStdio = __webpack_require__(168);
 const {spawnedKill, spawnedCancel, setupTimeout, setExitHandler} = __webpack_require__(567);
 const {handleInput, getSpawnedResult, makeAllStream, validateInputSync} = __webpack_require__(516);
-const {mergePromise, getSpawnedPromise} = __webpack_require__(188);
+const {mergePromise, getSpawnedPromise} = __webpack_require__(781);
 const {joinCommand, parseCommand} = __webpack_require__(749);
 
 const DEFAULT_MAX_BUFFER = 1000 * 1000 * 100;
@@ -6585,53 +6760,6 @@ module.exports.node = (scriptPath, args, options = {}) => {
 		}
 	);
 };
-
-
-/***/ }),
-
-/***/ 956:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-const cp = __webpack_require__(129);
-const parse = __webpack_require__(884);
-const enoent = __webpack_require__(15);
-
-function spawn(command, args, options) {
-    // Parse the arguments
-    const parsed = parse(command, args, options);
-
-    // Spawn the child process
-    const spawned = cp.spawn(parsed.command, parsed.args, parsed.options);
-
-    // Hook into child process "exit" event to emit an error if the command
-    // does not exists, see: https://github.com/IndigoUnited/node-cross-spawn/issues/16
-    enoent.hookChildProcess(spawned, parsed);
-
-    return spawned;
-}
-
-function spawnSync(command, args, options) {
-    // Parse the arguments
-    const parsed = parse(command, args, options);
-
-    // Spawn the child process
-    const result = cp.spawnSync(parsed.command, parsed.args, parsed.options);
-
-    // Analyze if the command does not exist, see: https://github.com/IndigoUnited/node-cross-spawn/issues/16
-    result.error = result.error || enoent.verifyENOENTSync(result.status, parsed);
-
-    return result;
-}
-
-module.exports = spawn;
-module.exports.spawn = spawn;
-module.exports.sync = spawnSync;
-
-module.exports._parse = parse;
-module.exports._enoent = enoent;
 
 
 /***/ }),

@@ -1,10 +1,13 @@
 const { GITHUB_REPOSITORY, GITHUB_ACTOR } = process.env;
 
 const config = {
+    json: {
+        indent: "  ",
+    },
     git: {
         branch: "develop",
         user: {
-            name: "GitHub Action",
+            name: GITHUB_ACTOR,
             email: "action@github.com",
         },
         remote: {
