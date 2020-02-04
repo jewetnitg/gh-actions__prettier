@@ -1,9 +1,11 @@
 import { exec, ExecOptions } from "child_process";
 import execa from "execa";
 
+//noinspection JSUnusedGlobalSymbols
 type ChildProcess = ReturnType<typeof ChildProcess>;
 
 const ChildProcess = () => {
+    //noinspection UnnecessaryLocalVariableJS
     const api = {
         exec: (command: string, options: ExecOptions = {}) =>
             new Promise<string>((resolve, reject) =>

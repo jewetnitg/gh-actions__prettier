@@ -2,6 +2,7 @@ import * as core from "@actions/core";
 import ChildProcess from "./ChildProcess";
 import Fs from "./Fs";
 
+//noinspection JSUnusedGlobalSymbols
 type Npm = ReturnType<typeof Npm>;
 
 interface InstallOptions {
@@ -14,9 +15,13 @@ const paths = {
     packageJson: "package.json",
 };
 
-const Npm = () => {
+export interface NpmOptions {
+    defaultJsonIndent: string | number;
+}
+
+const Npm = ({ defaultJsonIndent }: NpmOptions) => {
     const { execa } = ChildProcess();
-    const { writeJson, readJson } = Fs();
+    const { writeJson, readJson } = Fs({ defaultJsonIndent });
     const npm = {
         install: Object.assign(
             async (

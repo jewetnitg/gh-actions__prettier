@@ -1,12 +1,16 @@
 import * as core from "@actions/core";
 import * as fs from "fs-extra";
-import config from "../../config";
 
+//noinspection JSUnusedGlobalSymbols
 type Fs = ReturnType<typeof Fs>;
 
 export type JsonValue = object | string | number | boolean | null;
 
-const Fs = () => {
+export interface FsOptions {
+    defaultJsonIndent: string | number;
+}
+
+const Fs = ({ defaultJsonIndent }: FsOptions) => {
     const api = {
         ...fs,
         detectJsonIndent: async (path: string) => {
@@ -51,10 +55,9 @@ const Fs = () => {
             return line.slice(0, line.indexOf(`"`));
         },
         writeJson: async (path: string, content: JsonValue) => {
-            const defaultIndent = config.json.indent;
             const indent = (await api.pathExists(path))
-                ? (await api.detectJsonIndent(path)) || defaultIndent
-                : defaultIndent;
+                ? (await api.detectJsonIndent(path)) || defaultJsonIndent
+                : defaultJsonIndent;
 
             core.info(`Writing json file "${path}"`);
             const json = JSON.stringify(content, null, indent);

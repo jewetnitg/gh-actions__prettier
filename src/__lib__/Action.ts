@@ -1,5 +1,6 @@
 import * as core from "@actions/core";
 import Api from "./apis";
+import { ApiOptions } from "./apis/Api";
 import { DefaultInputs } from "./DefaultInputs";
 
 export type StepFn<TInputs extends DefaultInputs> = (
@@ -7,13 +8,12 @@ export type StepFn<TInputs extends DefaultInputs> = (
     inputs: TInputs,
 ) => Promise<void>;
 const Action = <TInputs extends DefaultInputs>(
-    githubToken: any,
     steps: [string, StepFn<TInputs>][],
     getInputs: () => TInputs,
 ) => ({
-    run: async () => {
+    run: async (options: ApiOptions = {}) => {
         try {
-            const api = Api(githubToken);
+            const api = Api(options);
 
             for (const [message, fn] of steps) {
                 try {

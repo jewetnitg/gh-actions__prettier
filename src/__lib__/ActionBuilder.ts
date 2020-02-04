@@ -52,7 +52,7 @@ const ActionBuilder = <TInputs extends DefaultInputs>() => {
             steps.push([message, fn]);
             return builder;
         },
-        build: () => Action(core.getInput("githubToken"), steps, getInputs),
+        build: () => Action(steps, getInputs),
     };
 
     return builder;

@@ -390,27 +390,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const config_1 = __importDefault(__webpack_require__(478));
 const ChildProcess_1 = __importDefault(__webpack_require__(331));
-const Git = (githubToken) => {
+const checkoutCommand = ({ options, hasBranch }) => __awaiter(void 0, void 0, void 0, function* () {
+    const { branch } = options;
+    const exists = yield hasBranch(branch);
+    return ["git", ["checkout", !exists && "-b", branch].filter(Boolean)];
+});
+const initialGitCommands = (git) => __awaiter(void 0, void 0, void 0, function* () {
+    return [
+        ["git", ["config", "--local", "user.name", git.options.user]],
+        ["git", ["config", "--local", "user.email", git.options.email]],
+        yield checkoutCommand(git),
+    ].filter(Boolean);
+});
+const Git = (options) => {
+    const { branch, user, token, repository } = options;
     const { execa, exec } = ChildProcess_1.default();
     let commands = [];
     let shouldExecute = false;
-    const initialGitCommands = () => __awaiter(void 0, void 0, void 0, function* () {
-        return [
-            ["git", ["config", "--local", "user.name", config_1.default.git.user.name]],
-            ["git", ["config", "--local", "user.email", config_1.default.git.user.email]],
-            [
-                "git",
-                [
-                    "checkout",
-                    !(yield git.hasBranch(config_1.default.git.branch)) && "-b",
-                    config_1.default.git.branch,
-                ].filter(Boolean),
-            ],
-        ].filter(Boolean);
-    });
     const git = {
+        options: Object.freeze(Object.assign({}, options)),
         getBranches: () => __awaiter(void 0, void 0, void 0, function* () {
             return (yield exec(`git branch | tail`))
                 .split("\n")
@@ -438,26 +437,23 @@ const Git = (githubToken) => {
             return git;
         },
         push: (flags = []) => {
-            const remoteUrl = config_1.default.git.remote.url(githubToken);
+            const remoteUrl = `https://${user}:${token}@github.com/${repository}.git`;
             if (shouldExecute) {
                 throw new Error(`Execute before performing another git action`);
             }
-            commands.push([
-                "git",
-                ["push", "-u", remoteUrl, config_1.default.git.branch, ...flags],
-            ]);
+            commands.push(["git", ["push", "-u", remoteUrl, branch, ...flags]]);
             shouldExecute = true;
             return git;
         },
         execute: () => __awaiter(void 0, void 0, void 0, function* () {
             for (const [command, args] of [
-                ...(yield initialGitCommands()),
+                ...(yield initialGitCommands(git)),
                 ...commands,
             ]) {
                 yield execa(command, args);
             }
             shouldExecute = false;
-            commands = yield initialGitCommands();
+            commands = yield initialGitCommands(git);
         }),
     };
     return git;
@@ -638,7 +634,7 @@ const ActionBuilder = () => {
             steps.push([message, fn]);
             return builder;
         },
-        build: () => Action_1.default(core.getInput("githubToken"), steps, getInputs),
+        build: () => Action_1.default(steps, getInputs),
     };
     return builder;
 };
@@ -699,8 +695,6 @@ exports.default = action;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-var Action_1 = __webpack_require__(144);
-exports.Action = Action_1.default;
 var ActionBuilder_1 = __webpack_require__(56);
 exports.ActionBuilder = ActionBuilder_1.default;
 
@@ -1280,10 +1274,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const apis_1 = __importDefault(__webpack_require__(252));
-const Action = (githubToken, steps, getInputs) => ({
-    run: () => __awaiter(void 0, void 0, void 0, function* () {
+const Action = (steps, getInputs) => ({
+    run: (options = {}) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const api = apis_1.default(githubToken);
+            const api = apis_1.default(options);
             for (const [message, fn] of steps) {
                 try {
                     yield core.group(message, () => __awaiter(void 0, void 0, void 0, function* () {
@@ -1590,6 +1584,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const action_1 = __importDefault(__webpack_require__(76));
+//noinspection JSIgnoredPromiseFromCall
 action_1.default.run();
 
 
@@ -2365,6 +2360,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const child_process_1 = __webpack_require__(129);
 const execa_1 = __importDefault(__webpack_require__(955));
 const ChildProcess = () => {
+    //noinspection UnnecessaryLocalVariableJS
     const api = {
         exec: (command, options = {}) => new Promise((resolve, reject) => child_process_1.exec(command, options, (err, stdout, stderr) => err || stderr
             ? reject(err || new Error(stderr))
@@ -3211,34 +3207,6 @@ rimraf.sync = rimrafSync
 
 /***/ }),
 
-/***/ 478:
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const { GITHUB_REPOSITORY, GITHUB_ACTOR } = process.env;
-const config = {
-    json: {
-        indent: "  ",
-    },
-    git: {
-        branch: "develop",
-        user: {
-            name: GITHUB_ACTOR,
-            email: "action@github.com",
-        },
-        remote: {
-            name: "github",
-            url: (githubToken) => `https://${GITHUB_ACTOR}:${githubToken}@github.com/${GITHUB_REPOSITORY}.git`,
-        },
-    },
-};
-exports.default = config;
-
-
-/***/ }),
-
 /***/ 483:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -3260,14 +3228,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     result["default"] = mod;
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const fs = __importStar(__webpack_require__(226));
-const config_1 = __importDefault(__webpack_require__(478));
-const Fs = () => {
+const Fs = ({ defaultJsonIndent }) => {
     const api = Object.assign(Object.assign({}, fs), { detectJsonIndent: (path) => __awaiter(void 0, void 0, void 0, function* () {
             const textContent = (yield api.readFile(path)).toString();
             try {
@@ -3298,10 +3262,9 @@ const Fs = () => {
             }
             return line.slice(0, line.indexOf(`"`));
         }), writeJson: (path, content) => __awaiter(void 0, void 0, void 0, function* () {
-            const defaultIndent = config_1.default.json.indent;
             const indent = (yield api.pathExists(path))
-                ? (yield api.detectJsonIndent(path)) || defaultIndent
-                : defaultIndent;
+                ? (yield api.detectJsonIndent(path)) || defaultJsonIndent
+                : defaultJsonIndent;
             core.info(`Writing json file "${path}"`);
             const json = JSON.stringify(content, null, indent);
             core.info(json);
@@ -5063,21 +5026,29 @@ module.exports.default = mimicFn;
 
 "use strict";
 
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const core = __importStar(__webpack_require__(470));
 const ChildProcess_1 = __importDefault(__webpack_require__(331));
 const Fs_1 = __importDefault(__webpack_require__(483));
 const Git_1 = __importDefault(__webpack_require__(50));
 const Npm_1 = __importDefault(__webpack_require__(706));
-const Api = (githubToken) => {
+const Api = ({ git: { token = core.getInput("githubToken"), user = process.env.GITHUB_ACTOR || "", email = "action@github.com", branch = "develop", repository = process.env.GITHUB_REPOSITORY || "", } = {}, defaultJsonIndent = 2, } = {}) => {
     const api = {
-        fs: Fs_1.default(),
-        npm: Npm_1.default(),
+        fs: Fs_1.default({ defaultJsonIndent }),
+        npm: Npm_1.default({ defaultJsonIndent }),
         childProcess: ChildProcess_1.default(),
-        git: Git_1.default(githubToken),
-        githubToken,
+        git: Git_1.default({ token, user, email, branch, repository }),
+        githubToken: token,
     };
     return api;
 };
@@ -5459,9 +5430,9 @@ const Fs_1 = __importDefault(__webpack_require__(483));
 const paths = {
     packageJson: "package.json",
 };
-const Npm = () => {
+const Npm = ({ defaultJsonIndent }) => {
     const { execa } = ChildProcess_1.default();
-    const { writeJson, readJson } = Fs_1.default();
+    const { writeJson, readJson } = Fs_1.default({ defaultJsonIndent });
     const npm = {
         install: Object.assign((dependencies = [], { bundle = false, exact = false, type = "prod", } = {}) => __awaiter(void 0, void 0, void 0, function* () {
             const flags = dependencies.length

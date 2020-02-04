@@ -1,23 +1,39 @@
+import * as core from "@actions/core";
 import ChildProcess from "./ChildProcess";
 import Fs from "./Fs";
 import Git from "./Git";
 import Npm from "./Npm";
 
-interface Api {
-    fs: Fs;
-    childProcess: ChildProcess;
-    npm: Npm;
-    git: Git;
-    githubToken: string;
+//noinspection JSUnusedGlobalSymbols
+type Api = ReturnType<typeof Api>;
+
+export interface ApiOptions {
+    git?: {
+        token?: string;
+        user?: string;
+        email?: string;
+        branch?: string;
+        repository?: string;
+    };
+    defaultJsonIndent?: string | number;
 }
 
-const Api = (githubToken: string) => {
-    const api: Api = {
-        fs: Fs(),
-        npm: Npm(),
+const Api = ({
+    git: {
+        token = core.getInput("githubToken"),
+        user = process.env.GITHUB_ACTOR || "",
+        email = "action@github.com",
+        branch = "develop",
+        repository = process.env.GITHUB_REPOSITORY || "",
+    } = {},
+    defaultJsonIndent = 2,
+}: ApiOptions = {}) => {
+    const api = {
+        fs: Fs({ defaultJsonIndent }),
+        npm: Npm({ defaultJsonIndent }),
         childProcess: ChildProcess(),
-        git: Git(githubToken),
-        githubToken,
+        git: Git({ token, user, email, branch, repository }),
+        githubToken: token,
     };
 
     return api;

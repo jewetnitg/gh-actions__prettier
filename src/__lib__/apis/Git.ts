@@ -1,27 +1,37 @@
-import config from "../../config";
 import ChildProcess from "./ChildProcess";
 
+//noinspection JSUnusedGlobalSymbols
 type Git = ReturnType<typeof Git>;
 
-const Git = (githubToken: string) => {
+export interface GitOptions {
+    token: string;
+    user: string;
+    email: string;
+    branch: string;
+    repository: string;
+}
+
+const checkoutCommand = async ({ options, hasBranch }: Git) => {
+    const { branch } = options;
+    const exists = await hasBranch(branch);
+    return ["git", ["checkout", !exists && "-b", branch].filter(Boolean)];
+};
+
+const initialGitCommands = async (git: Git): Promise<[string, string[]][]> =>
+    [
+        ["git", ["config", "--local", "user.name", git.options.user]],
+        ["git", ["config", "--local", "user.email", git.options.email]],
+        await checkoutCommand(git),
+    ].filter(Boolean) as [string, string[]][];
+
+const Git = (options: GitOptions) => {
+    const { branch, user, token, repository } = options;
     const { execa, exec } = ChildProcess();
     let commands: [string, string[]][] = [];
     let shouldExecute = false;
-    const initialGitCommands = async (): Promise<[string, string[]][]> =>
-        [
-            ["git", ["config", "--local", "user.name", config.git.user.name]],
-            ["git", ["config", "--local", "user.email", config.git.user.email]],
-            [
-                "git",
-                [
-                    "checkout",
-                    !(await git.hasBranch(config.git.branch)) && "-b",
-                    config.git.branch,
-                ].filter(Boolean),
-            ],
-        ].filter(Boolean) as [string, string[]][];
 
     const git = {
+        options: Object.freeze({ ...options }),
         getBranches: async () =>
             (await exec(`git branch | tail`))
                 .split("\n")
@@ -53,16 +63,13 @@ const Git = (githubToken: string) => {
             return git;
         },
         push: (flags: string[] = []) => {
-            const remoteUrl = config.git.remote.url(githubToken);
+            const remoteUrl = `https://${user}:${token}@github.com/${repository}.git`;
 
             if (shouldExecute) {
                 throw new Error(`Execute before performing another git action`);
             }
 
-            commands.push([
-                "git",
-                ["push", "-u", remoteUrl, config.git.branch, ...flags],
-            ]);
+            commands.push(["git", ["push", "-u", remoteUrl, branch, ...flags]]);
 
             shouldExecute = true;
 
@@ -70,7 +77,7 @@ const Git = (githubToken: string) => {
         },
         execute: async () => {
             for (const [command, args] of [
-                ...(await initialGitCommands()),
+                ...(await initialGitCommands(git)),
                 ...commands,
             ]) {
                 await execa(command, args);
@@ -78,7 +85,7 @@ const Git = (githubToken: string) => {
 
             shouldExecute = false;
 
-            commands = await initialGitCommands();
+            commands = await initialGitCommands(git);
         },
     };
 
