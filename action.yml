@@ -1,6 +1,12 @@
 name: "prettier"
 description: "prettier github action"
 author: "Rik Hoffbauer"
+metadata:
+    tags:
+        - prettier
+        - node
+    requires:
+        - node
 inputs:
     plugins:
         metadata:
