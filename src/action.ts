@@ -1,6 +1,10 @@
+import {
+    ActionBuilder,
+    object,
+    string,
+    stringarray,
+} from "@gh-actions/helpers";
 import { Options } from "prettier";
-import { ActionBuilder } from "./__lib__";
-import { object, string, stringarray } from "./__lib__/InputParsers";
 
 const paths = {
     config: ".prettierrc.json",
@@ -23,12 +27,12 @@ const action = ActionBuilder<Inputs>()
             .map(ext => ext.replace(/\s+/g, ""))
             .map(ext => `'**/*.${ext}'`),
     )
-    .step("chore: add prettier", async ({ npm, fs }, inputs) => {
+    .step("chore: add prettier", async ({ npm, writeFiles }, inputs) => {
         const { ignore, config, extensionGlobs } = inputs;
 
         await npm.install.dev(["prettier"]);
 
-        await fs.writeFiles({
+        await writeFiles({
             [paths.config]: config,
             [paths.ignore]: ignore,
         });
@@ -38,7 +42,9 @@ const action = ActionBuilder<Inputs>()
             "format-check": `prettier --check ${extensionGlobs.join(" ")}`,
         });
     })
-    .step("chore: format code using prettier", ({ npm }) => npm.run("format"))
+    .step("chore: format code using prettier", async ({ npm }) =>
+        npm.run("format"),
+    )
     .build();
 
 export default action;
