@@ -662,14 +662,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const __lib__1 = __webpack_require__(78);
+const InputParsers_1 = __webpack_require__(541);
 const paths = {
     config: ".prettierrc.json",
     ignore: ".prettierignore",
 };
 const action = __lib__1.ActionBuilder()
-    .input("ignore", String)
-    .input("config", json => (Object.assign({ tabWidth: 2 }, JSON.parse(json))))
-    .input("extensions", str => str.split("\n").filter(Boolean))
+    .input("ignore", InputParsers_1.string())
+    .input("config", InputParsers_1.object({ tabWidth: 2 }))
+    .input("extensions", InputParsers_1.stringarray())
     .syntheticInput("extensionGlobs", ({ extensions = [] }) => extensions
     .map(ext => ext.replace(/\s+/g, ""))
     .map(ext => `'**/*.${ext}'`))
@@ -3773,6 +3774,32 @@ const makeError = ({
 };
 
 module.exports = makeError;
+
+
+/***/ }),
+
+/***/ 541:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const parser = (parser) => (defaultValue) => v => {
+    const value = parser(v, defaultValue);
+    if (value == null) {
+        if (defaultValue == null) {
+            return null;
+        }
+        return defaultValue;
+    }
+    return value;
+};
+exports.string = parser((v) => v);
+exports.stringarray = parser(str => str.split("\n").filter(Boolean));
+exports.object = parser((v, defaultValue) => v ? Object.assign(Object.assign({}, (defaultValue || {})), JSON.parse(v)) : null);
+exports.array = parser((v) => v ? JSON.parse(v) : null);
+exports.boolean = parser((v) => v ? v === "true" || v === "1" : null);
+exports.date = parser((v) => (v ? new Date(v) : null));
 
 
 /***/ }),

@@ -1,5 +1,6 @@
 import { Options } from "prettier";
 import { ActionBuilder } from "./__lib__";
+import { object, string, stringarray } from "./__lib__/InputParsers";
 
 const paths = {
     config: ".prettierrc.json",
@@ -14,9 +15,9 @@ interface Inputs {
 }
 
 const action = ActionBuilder<Inputs>()
-    .input("ignore", String)
-    .input("config", json => ({ tabWidth: 2, ...JSON.parse(json) }))
-    .input("extensions", str => str.split("\n").filter(Boolean))
+    .input("ignore", string())
+    .input("config", object({ tabWidth: 2 }))
+    .input("extensions", stringarray())
     .syntheticInput("extensionGlobs", ({ extensions = [] }) =>
         extensions
             .map(ext => ext.replace(/\s+/g, ""))
